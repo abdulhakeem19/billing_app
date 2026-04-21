@@ -1,8 +1,11 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:uuid/uuid.dart';
 import '../../domain/entities/cart_item.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
+import 'package:billing_app/features/invoice/domain/entities/invoice.dart';
+import 'package:billing_app/features/invoice/domain/usecases/invoice_usecases.dart';
 import '../../../../core/utils/printer_helper.dart';
 import '../../../../core/data/hive_database.dart';
 
@@ -11,15 +14,27 @@ part 'billing_state.dart';
 
 class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final GetProductByBarcodeUseCase getProductByBarcodeUseCase;
+  final UpdateProductUseCase updateProductUseCase;
+  final SaveInvoiceUseCase saveInvoiceUseCase;
 
-  BillingBloc({required this.getProductByBarcodeUseCase})
-      : super(const BillingState()) {
+  BillingBloc({
+    required this.getProductByBarcodeUseCase,
+    required this.updateProductUseCase,
+    required this.saveInvoiceUseCase,
+  }) : super(BillingState(
+          taxRate: HiveDatabase.settingsBox.get('tax_rate', defaultValue: 0.0)
+              as double,
+        )) {
     on<ScanBarcodeEvent>(_onScanBarcode);
     on<AddProductToCartEvent>(_onAddProductToCart);
     on<RemoveProductFromCartEvent>(_onRemoveProductFromCart);
     on<UpdateQuantityEvent>(_onUpdateQuantity);
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
+    on<SetTaxRateEvent>(_onSetTaxRate);
+    on<ApplyDiscountEvent>(_onApplyDiscount);
+    on<SetPaymentModeEvent>(_onSetPaymentMode);
+    on<CompleteCheckoutEvent>(_onCompleteCheckout);
   }
 
   Future<void> _onScanBarcode(
@@ -29,6 +44,12 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       (failure) =>
           emit(state.copyWith(error: 'Product not found: ${event.barcode}')),
       (product) {
+        if (product.stock <= 0) {
+          emit(state.copyWith(
+              error: '${product.name} is out of stock!', clearError: false));
+          emit(state.copyWith(clearError: true));
+          return;
+        }
         add(AddProductToCartEvent(product));
       },
     );
@@ -36,21 +57,37 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   void _onAddProductToCart(
       AddProductToCartEvent event, Emitter<BillingState> emit) {
-    // Clear error when adding
-    final cleanState = state.copyWith(error: null);
+    if (event.product.stock <= 0) {
+      emit(state.copyWith(
+          error: '${event.product.name} is out of stock!', clearError: false));
+      emit(state.copyWith(clearError: true));
+      return;
+    }
 
+    final cleanState = state.copyWith(error: null);
     final existingIndex = cleanState.cartItems
         .indexWhere((item) => item.product.id == event.product.id);
+
     if (existingIndex >= 0) {
-      final existingItem = cleanState.cartItems[existingIndex];
+      final existing = cleanState.cartItems[existingIndex];
+      final newQty = existing.quantity + 1;
+      if (newQty > event.product.stock) {
+        emit(state.copyWith(
+            error: 'Not enough stock for ${event.product.name}',
+            clearError: false));
+        emit(state.copyWith(clearError: true));
+        return;
+      }
       final backendItems = List<CartItem>.from(cleanState.cartItems);
-      backendItems[existingIndex] =
-          existingItem.copyWith(quantity: existingItem.quantity + 1);
+      backendItems[existingIndex] = existing.copyWith(quantity: newQty);
       emit(cleanState.copyWith(cartItems: backendItems, error: null));
     } else {
-      final newItem = CartItem(product: event.product);
       emit(cleanState.copyWith(
-          cartItems: [...cleanState.cartItems, newItem], error: null));
+          cartItems: [
+            ...cleanState.cartItems,
+            CartItem(product: event.product)
+          ],
+          error: null));
     }
   }
 
@@ -68,10 +105,16 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       add(RemoveProductFromCartEvent(event.productId));
       return;
     }
-
     final index = state.cartItems
         .indexWhere((item) => item.product.id == event.productId);
     if (index >= 0) {
+      final product = state.cartItems[index].product;
+      if (event.quantity > product.stock) {
+        emit(state.copyWith(
+            error: 'Not enough stock for ${product.name}', clearError: false));
+        emit(state.copyWith(clearError: true));
+        return;
+      }
       final items = List<CartItem>.from(state.cartItems);
       items[index] = items[index].copyWith(quantity: event.quantity);
       emit(state.copyWith(cartItems: items));
@@ -79,7 +122,81 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   }
 
   void _onClearCart(ClearCartEvent event, Emitter<BillingState> emit) {
-    emit(const BillingState());
+    emit(BillingState(taxRate: state.taxRate));
+  }
+
+  void _onSetTaxRate(SetTaxRateEvent event, Emitter<BillingState> emit) {
+    HiveDatabase.settingsBox.put('tax_rate', event.taxRate);
+    emit(state.copyWith(taxRate: event.taxRate));
+  }
+
+  void _onApplyDiscount(
+      ApplyDiscountEvent event, Emitter<BillingState> emit) {
+    emit(state.copyWith(
+      discountType: event.discountType,
+      discountValue: event.value,
+    ));
+  }
+
+  void _onSetPaymentMode(
+      SetPaymentModeEvent event, Emitter<BillingState> emit) {
+    emit(state.copyWith(paymentMode: event.mode));
+  }
+
+  Future<void> _onCompleteCheckout(
+      CompleteCheckoutEvent event, Emitter<BillingState> emit) async {
+    emit(state.copyWith(isCheckingOut: true, error: null));
+
+    // Deduct stock for each cart item
+    for (final item in state.cartItems) {
+      final updated = Product(
+        id: item.product.id,
+        name: item.product.name,
+        barcode: item.product.barcode,
+        price: item.product.price,
+        stock: (item.product.stock - item.quantity).clamp(0, 999999),
+      );
+      await updateProductUseCase(updated);
+    }
+
+    // Build and save invoice
+    final nextNumber =
+        HiveDatabase.settingsBox.get('next_invoice_number', defaultValue: 1)
+            as int;
+    await HiveDatabase.settingsBox.put('next_invoice_number', nextNumber + 1);
+
+    final invoice = Invoice(
+      id: const Uuid().v4(),
+      invoiceNumber: nextNumber,
+      timestamp: DateTime.now(),
+      items: state.cartItems
+          .map((i) => InvoiceItem(
+                productId: i.product.id,
+                productName: i.product.name,
+                quantity: i.quantity,
+                price: i.product.price,
+              ))
+          .toList(),
+      subtotal: state.subtotal,
+      taxRate: state.taxRate,
+      taxAmount: state.taxAmount,
+      discountAmount: state.discountAmount,
+      total: state.totalAmount,
+      paymentMode: state.paymentMode,
+      customerId: event.customerId,
+      loyaltyPointsEarned: event.pointsEarned,
+      loyaltyPointsRedeemed: event.pointsRedeemed,
+    );
+
+    await saveInvoiceUseCase(invoice);
+
+    emit(state.copyWith(
+      isCheckingOut: false,
+      checkoutSuccess: true,
+      completedInvoice: invoice,
+      isPrinting: false,
+      printSuccess: false,
+    ));
   }
 
   Future<void> _onPrintReceipt(
@@ -131,7 +248,6 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     } catch (e) {
       emit(state.copyWith(
           isPrinting: false, error: 'Print failed: $e', clearError: false));
-      // Reset error instantly avoids sticky error
       emit(state.copyWith(clearError: true));
     }
   }

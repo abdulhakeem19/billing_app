@@ -37,6 +37,43 @@ class UpdateQuantityEvent extends BillingEvent {
 
 class ClearCartEvent extends BillingEvent {}
 
+class SetTaxRateEvent extends BillingEvent {
+  final double taxRate;
+  const SetTaxRateEvent(this.taxRate);
+  @override
+  List<Object> get props => [taxRate];
+}
+
+class ApplyDiscountEvent extends BillingEvent {
+  final String discountType; // 'flat' or 'percent'
+  final double value;
+  const ApplyDiscountEvent({required this.discountType, required this.value});
+  @override
+  List<Object> get props => [discountType, value];
+}
+
+class SetPaymentModeEvent extends BillingEvent {
+  final String mode; // 'Cash', 'Card', 'UPI'
+  const SetPaymentModeEvent(this.mode);
+  @override
+  List<Object> get props => [mode];
+}
+
+class CompleteCheckoutEvent extends BillingEvent {
+  final String? customerId;
+  final int pointsEarned;
+  final int pointsRedeemed;
+
+  const CompleteCheckoutEvent({
+    this.customerId,
+    this.pointsEarned = 0,
+    this.pointsRedeemed = 0,
+  });
+
+  @override
+  List<Object> get props => [pointsEarned, pointsRedeemed];
+}
+
 class PrintReceiptEvent extends BillingEvent {
   final String shopName;
   final String address1;

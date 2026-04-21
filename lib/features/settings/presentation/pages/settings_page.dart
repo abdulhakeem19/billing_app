@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
 
+import '../../../../core/data/hive_database.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
 import '../bloc/printer_event.dart';
@@ -114,6 +116,30 @@ class _SettingsPageState extends State<SettingsPage> {
                   subtitle: 'Edit business info & address',
                   onTap: () => context.push('/shop'),
                 ),
+                _buildDivider(),
+                _buildListItem(
+                  icon: Icons.bar_chart_rounded,
+                  title: 'Reports & Analytics',
+                  subtitle: 'Sales history and trends',
+                  onTap: () => context.push('/reports'),
+                ),
+                _buildDivider(),
+                _buildListItem(
+                  icon: Icons.qr_code_2_rounded,
+                  title: 'Digital QR Menu',
+                  subtitle: 'Generate QR codes for your menu',
+                  onTap: () => context.push('/qr-menu'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Tax Settings Section
+            _buildSectionHeader('Billing'),
+            _buildListGroup(
+              children: [
+                _buildTaxSettingItem(context),
               ],
             ),
 
@@ -251,6 +277,77 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildDivider() {
     return Divider(height: 1, thickness: 1, color: Colors.grey[50], indent: 64);
+  }
+
+  Widget _buildTaxSettingItem(BuildContext context) {
+    final taxRate = _getTaxRate();
+    return _buildListItem(
+      icon: Icons.percent,
+      title: 'Tax Rate',
+      subtitle: taxRate > 0
+          ? '${taxRate.toStringAsFixed(1)}% applied on orders'
+          : 'No tax configured',
+      onTap: () => _showTaxDialog(context),
+    );
+  }
+
+  double _getTaxRate() {
+    try {
+      return (HiveDatabase.settingsBox.get('tax_rate', defaultValue: 0.0)
+          as double);
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
+  void _showTaxDialog(BuildContext context) {
+    final taxRate = _getTaxRate();
+    final controller =
+        TextEditingController(text: taxRate > 0 ? taxRate.toString() : '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Configure Tax Rate'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter tax percentage (e.g. 5 for 5%)',
+                style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                hintText: '0.0',
+                suffixText: '%',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text) ?? 0;
+              HiveDatabase.settingsBox.put('tax_rate', val);
+              context
+                  .read<BillingBloc>()
+                  .add(SetTaxRateEvent(val));
+              Navigator.pop(ctx);
+              setState(() {});
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(
+                      'Tax rate set to ${val.toStringAsFixed(1)}%'),
+                  backgroundColor: Colors.green));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildListItem({

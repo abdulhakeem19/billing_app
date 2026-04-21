@@ -8,6 +8,8 @@ import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/billing/presentation/pages/scanner_page.dart';
 import '../../features/billing/presentation/pages/checkout_page.dart';
 import '../../features/product/domain/entities/product.dart';
+import '../../features/reports/presentation/pages/reports_page.dart';
+import '../../features/qr_menu/presentation/pages/qr_menu_page.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -43,7 +45,6 @@ final router = GoRouter(
           builder: (context, state) {
             final product = state.extra as Product?;
             if (product == null) {
-              // If we land here without extra (e.g. deep link), go back to products for now.
               return const ProductListPage();
             }
             return EditProductPage(product: product);
@@ -54,6 +55,14 @@ final router = GoRouter(
     GoRoute(
       path: '/shop',
       builder: (context, state) => const ShopDetailsPage(),
+    ),
+    GoRoute(
+      path: '/reports',
+      builder: (context, state) => const ReportsPage(),
+    ),
+    GoRoute(
+      path: '/qr-menu',
+      builder: (context, state) => const QrMenuPage(),
     ),
   ],
 );

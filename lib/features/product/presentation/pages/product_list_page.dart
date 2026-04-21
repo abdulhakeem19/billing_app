@@ -199,6 +199,8 @@ class _ProductListPageState extends State<ProductListPage> {
                                       fontWeight: FontWeight.w500,
                                       color: Colors.grey[600]),
                                 ),
+                                const SizedBox(height: 6),
+                                _buildStockBadge(product.stock),
                               ],
                             ),
                           ),
@@ -256,6 +258,35 @@ class _ProductListPageState extends State<ProductListPage> {
         shape: const CircleBorder(),
         child: const Icon(Icons.add, size: 32),
       ),
+    );
+  }
+
+  Widget _buildStockBadge(int stock) {
+    Color bg;
+    Color fg;
+    String label;
+    if (stock <= 0) {
+      bg = Colors.red.shade50;
+      fg = Colors.red.shade700;
+      label = 'Out of Stock';
+    } else if (stock <= 5) {
+      bg = Colors.orange.shade50;
+      fg = Colors.orange.shade700;
+      label = 'Low Stock: $stock';
+    } else {
+      bg = Colors.green.shade50;
+      fg = Colors.green.shade700;
+      label = 'In Stock: $stock';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
     );
   }
 
