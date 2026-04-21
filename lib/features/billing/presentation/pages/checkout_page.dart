@@ -8,6 +8,9 @@ import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../loyalty/presentation/bloc/loyalty_bloc.dart';
 import '../bloc/billing_bloc.dart';
 
+/// Number of currency units (₹) per loyalty point redeemed.
+const double kPointsToRupeeRate = 1.0;
+
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
 
@@ -492,7 +495,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Redeem ${loyaltyState.selectedCustomer!.points} pts = ₹${loyaltyState.selectedCustomer!.points}',
+                          'Redeem ${loyaltyState.selectedCustomer!.points} pts = ₹${(loyaltyState.selectedCustomer!.points * kPointsToRupeeRate).toStringAsFixed(0)}',
                           style: const TextStyle(fontSize: 13),
                         ),
                       ),
@@ -503,14 +506,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           if (val) {
                             context.read<LoyaltyBloc>().add(RedeemPointsEvent(
                                 loyaltyState.selectedCustomer!.points));
+                            final discount = loyaltyState
+                                .selectedCustomer!.points
+                                .toDouble() *
+                                kPointsToRupeeRate;
                             context.read<BillingBloc>().add(ApplyDiscountEvent(
-                                discountType: 'flat',
-                                value: loyaltyState
-                                    .selectedCustomer!.points
-                                    .toDouble()));
+                                discountType: 'flat', value: discount));
                             _discountController.text =
-                                loyaltyState.selectedCustomer!.points
-                                    .toString();
+                                discount.toStringAsFixed(0);
                             _isPercentDiscount = false;
                           } else {
                             context.read<LoyaltyBloc>().add(

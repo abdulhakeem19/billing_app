@@ -1,5 +1,8 @@
 part of 'loyalty_bloc.dart';
 
+/// Maximum number of loyalty points a customer can accumulate.
+const int kMaxLoyaltyPoints = 999999999;
+
 class LoyaltyState extends Equatable {
   final Customer? selectedCustomer;
   final bool lookupDone;
@@ -17,7 +20,7 @@ class LoyaltyState extends Equatable {
     this.allCustomers = const [],
   });
 
-  // 1 point = ₹1 discount
+  // 1 point = ₹1 discount by default (configurable via kPointsToRupeeRate in checkout_page.dart)
   double get redemptionValue => pointsToRedeem.toDouble();
 
   LoyaltyState copyWith({

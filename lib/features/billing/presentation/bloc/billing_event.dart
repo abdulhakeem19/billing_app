@@ -1,5 +1,8 @@
 part of 'billing_bloc.dart';
 
+/// Maximum stock quantity that can be set for a product.
+const int kMaxStock = 999999;
+
 abstract class BillingEvent extends Equatable {
   const BillingEvent();
   @override

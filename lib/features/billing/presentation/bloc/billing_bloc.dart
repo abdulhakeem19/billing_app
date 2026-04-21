@@ -154,7 +154,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         name: item.product.name,
         barcode: item.product.barcode,
         price: item.product.price,
-        stock: (item.product.stock - item.quantity).clamp(0, 999999),
+        stock: (item.product.stock - item.quantity).clamp(0, kMaxStock),
       );
       await updateProductUseCase(updated);
     }

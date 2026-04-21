@@ -81,7 +81,7 @@ class LoyaltyBloc extends Bloc<LoyaltyEvent, LoyaltyState> {
       AwardPointsEvent event, Emitter<LoyaltyState> emit) async {
     final customer = state.selectedCustomer;
     if (customer == null) return;
-    final newPoints = (customer.points + event.points).clamp(0, 999999999);
+    final newPoints = (customer.points + event.points).clamp(0, kMaxLoyaltyPoints);
     final updated = customer.copyWith(points: newPoints);
     await updateCustomerUseCase(updated);
     emit(state.copyWith(selectedCustomer: updated));

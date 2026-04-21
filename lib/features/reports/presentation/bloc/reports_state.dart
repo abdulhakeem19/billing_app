@@ -57,9 +57,9 @@ class ReportsState extends Equatable {
   /// Revenue per day for the last 7 days
   List<MapEntry<DateTime, double>> get dailyRevenue {
     final Map<String, double> byDay = {};
-    final now = DateTime.now();
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     for (int i = 6; i >= 0; i--) {
-      final day = DateTime(now.year, now.month, now.day - i);
+      final day = today.subtract(Duration(days: i));
       final key = '${day.year}-${day.month}-${day.day}';
       byDay[key] = 0;
     }
