@@ -74,7 +74,7 @@ class CompleteCheckoutEvent extends BillingEvent {
   });
 
   @override
-  List<Object> get props => [pointsEarned, pointsRedeemed];
+  List<Object?> get props => [customerId, pointsEarned, pointsRedeemed];
 }
 
 class PrintReceiptEvent extends BillingEvent {

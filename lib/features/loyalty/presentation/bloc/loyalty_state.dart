@@ -47,5 +47,5 @@ class LoyaltyState extends Equatable {
 
   @override
   List<Object?> get props =>
-      [selectedCustomer, lookupDone, isLoading, error, pointsToRedeem];
+      [selectedCustomer, lookupDone, isLoading, error, pointsToRedeem, allCustomers];
 }
