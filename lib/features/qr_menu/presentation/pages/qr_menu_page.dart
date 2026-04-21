@@ -39,17 +39,19 @@ class _QrMenuPageState extends State<QrMenuPage>
       appBar: AppBar(
         title: const Text('Digital QR Menu'),
         leading: IconButton(
-          icon:
-              Icon(Icons.chevron_left, size: 28, color: AppTheme.primaryColor),
+          icon: const Icon(Icons.chevron_left, size: 28),
           onPressed: () => context.pop(),
         ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.primaryColor,
+          indicatorWeight: 2,
+          labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600, fontSize: 13),
           tabs: const [
-            Tab(text: 'Full Menu QR'),
+            Tab(text: 'Full Menu'),
             Tab(text: 'Per Product'),
           ],
         ),
@@ -86,37 +88,45 @@ class _QrMenuPageState extends State<QrMenuPage>
             });
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
               child: Column(
                 children: [
-                  // Shop info header
                   Text(shopName,
                       style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.bold)),
+                          fontSize: 22, fontWeight: FontWeight.w800),
+                      textAlign: TextAlign.center),
                   const SizedBox(height: 4),
-                  Text('${products.length} items',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[500])),
-                  const SizedBox(height: 24),
+                  Text(
+                    products.isEmpty
+                        ? 'No items in menu'
+                        : '${products.length} item${products.length == 1 ? '' : 's'} in menu',
+                    style: const TextStyle(
+                        fontSize: 13, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 28),
 
-                  // QR code
+                  // QR container
                   Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4))
-                      ],
-                    ),
+                    padding: const EdgeInsets.all(24),
+                    decoration: AppTheme.cardDecoration(),
                     child: products.isEmpty
                         ? const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('No products yet. Add products first.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey)),
+                            padding: EdgeInsets.all(20),
+                            child: Column(
+                              children: [
+                                Icon(Icons.qr_code_2,
+                                    size: 60,
+                                    color: AppTheme.dividerColor),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Add products to generate menu QR',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 13),
+                                ),
+                              ],
+                            ),
                           )
                         : SizedBox(
                             width: 220,
@@ -124,25 +134,27 @@ class _QrMenuPageState extends State<QrMenuPage>
                             child: PrettyQrView.data(data: menuData),
                           ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
+                  // Info banner
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.15)),
+                          color:
+                              AppTheme.primaryColor.withValues(alpha: 0.15)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline,
+                        Icon(Icons.info_outline_rounded,
                             color: AppTheme.primaryColor, size: 18),
                         const SizedBox(width: 10),
                         const Expanded(
                           child: Text(
-                            'Customers can scan this QR to view the full menu with prices.',
-                            style: TextStyle(fontSize: 13),
+                            'Customers can scan this QR code to view the full menu with prices.',
+                            style: TextStyle(fontSize: 13, height: 1.4),
                           ),
                         ),
                       ],
@@ -161,18 +173,39 @@ class _QrMenuPageState extends State<QrMenuPage>
     return BlocBuilder<ProductBloc, ProductState>(
       builder: (context, state) {
         if (state.products.isEmpty) {
-          return const Center(
-              child: Text('No products yet.',
-                  style: TextStyle(color: Colors.grey)));
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppTheme.dividerColor.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.qr_code_2_rounded,
+                      size: 30, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 14),
+                const Text('No products yet',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15)),
+                const SizedBox(height: 6),
+                const Text('Add products to see their QR codes',
+                    style: TextStyle(
+                        color: AppTheme.textSecondary, fontSize: 13)),
+              ],
+            ),
+          );
         }
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: state.products.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final product = state.products[index];
-            return _buildProductQrCard(context, product);
-          },
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, index) =>
+              _buildProductQrCard(context, state.products[index]),
         );
       },
     );
@@ -180,17 +213,8 @@ class _QrMenuPageState extends State<QrMenuPage>
 
   Widget _buildProductQrCard(BuildContext context, Product product) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: AppTheme.cardDecoration(),
       child: Row(
         children: [
           Expanded(
@@ -202,27 +226,39 @@ class _QrMenuPageState extends State<QrMenuPage>
                         fontWeight: FontWeight.w600, fontSize: 15)),
                 const SizedBox(height: 4),
                 Text('₹${product.price.toStringAsFixed(2)}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primaryColor)),
                 const SizedBox(height: 4),
-                Text('Barcode: ${product.barcode}',
-                    style:
-                        const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(product.barcode,
+                    style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.textSecondary,
+                        fontFamily: 'monospace')),
               ],
             ),
           ),
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _showProductQrDialog(context, product),
-            child: SizedBox(
-              width: 80,
-              height: 80,
-              child: PrettyQrView.data(
-                data: jsonEncode({
-                  'id': product.id,
-                  'name': product.name,
-                  'price': product.price,
-                  'barcode': product.barcode,
-                }),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppTheme.dividerColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: SizedBox(
+                width: 76,
+                height: 76,
+                child: PrettyQrView.data(
+                  data: jsonEncode({
+                    'id': product.id,
+                    'name': product.name,
+                    'price': product.price,
+                    'barcode': product.barcode,
+                  }),
+                ),
               ),
             ),
           ),
@@ -242,32 +278,32 @@ class _QrMenuPageState extends State<QrMenuPage>
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(product.name,
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 18),
+                      fontWeight: FontWeight.w700, fontSize: 18),
                   textAlign: TextAlign.center),
               const SizedBox(height: 4),
               Text('₹${product.price.toStringAsFixed(2)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                       color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       fontSize: 16)),
               const SizedBox(height: 20),
               SizedBox(
-                width: 200,
-                height: 200,
-                child: PrettyQrView.data(data: qrData),
-              ),
-              const SizedBox(height: 16),
-              Text('Scan to add to order',
-                  style:
-                      TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  width: 200,
+                  height: 200,
+                  child: PrettyQrView.data(data: qrData)),
+              const SizedBox(height: 12),
+              const Text('Scan to add to order',
+                  style: TextStyle(
+                      fontSize: 12, color: AppTheme.textSecondary)),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.pop(ctx),

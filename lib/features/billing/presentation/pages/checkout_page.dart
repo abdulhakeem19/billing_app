@@ -530,6 +530,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ],
                 TextButton.icon(
                   onPressed: () {
+                    if (_redeemPoints) {
+                      // Clear the redemption discount from BillingBloc
+                      context.read<BillingBloc>().add(
+                          const ApplyDiscountEvent(
+                              discountType: 'flat', value: 0));
+                      _discountController.clear();
+                    }
                     context
                         .read<LoyaltyBloc>()
                         .add(ClearSelectedCustomerEvent());
@@ -637,12 +644,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: const BorderRadius.horizontal(
-            left: Radius.circular(24), right: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
             offset: const Offset(0, -4),
           ),
         ],

@@ -11,14 +11,11 @@ class TransactionDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const borderColor = Color(0xFFE5E5EA);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Invoice #${invoice.invoiceNumber}'),
         leading: IconButton(
-          icon:
-              Icon(Icons.chevron_left, size: 28, color: AppTheme.primaryColor),
+          icon: const Icon(Icons.chevron_left, size: 28),
           onPressed: () => context.pop(),
         ),
       ),
@@ -27,23 +24,14 @@ class TransactionDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header info card
+            // Meta card
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2))
-                ],
-              ),
+              decoration: AppTheme.cardDecoration(),
               child: Column(
                 children: [
                   _row('Date',
-                      DateFormat('dd MMM yyyy, hh:mm a')
+                      DateFormat('dd MMM yyyy, h:mm a')
                           .format(invoice.timestamp)),
                   _divider(),
                   _row('Payment', invoice.paymentMode),
@@ -53,7 +41,7 @@ class TransactionDetailPage extends StatelessWidget {
                     _divider(),
                     _row('Points Earned',
                         '+${invoice.loyaltyPointsEarned} pts',
-                        valueColor: Colors.green),
+                        valueColor: AppTheme.successColor),
                   ],
                   if (invoice.loyaltyPointsRedeemed > 0) ...[
                     _divider(),
@@ -64,20 +52,17 @@ class TransactionDetailPage extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Items table
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: borderColor),
-              ),
+              decoration: AppTheme.cardDecoration(withBorder: true),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 child: Table(
                   border: const TableBorder(
-                    horizontalInside: BorderSide(color: borderColor),
+                    horizontalInside: BorderSide(
+                        color: AppTheme.dividerColor, width: 1),
                   ),
                   columnWidths: const {
                     0: FlexColumnWidth(3),
@@ -86,8 +71,8 @@ class TransactionDetailPage extends StatelessWidget {
                   },
                   children: [
                     TableRow(
-                      decoration:
-                          const BoxDecoration(color: Color(0xFFF8FAFC)),
+                      decoration: const BoxDecoration(
+                          color: AppTheme.backgroundColor),
                       children: [
                         _headerCell('Item'),
                         _headerCell('Qty'),
@@ -108,21 +93,12 @@ class TransactionDetailPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Totals card
+            // Totals
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2))
-                ],
-              ),
+              decoration: AppTheme.cardDecoration(),
               child: Column(
                 children: [
                   _row('Subtotal',
@@ -131,11 +107,12 @@ class TransactionDetailPage extends StatelessWidget {
                     _divider(),
                     _row('Discount',
                         '-₹${invoice.discountAmount.toStringAsFixed(2)}',
-                        valueColor: Colors.red),
+                        valueColor: AppTheme.errorColor),
                   ],
                   if (invoice.taxAmount > 0) ...[
                     _divider(),
-                    _row('Tax (${invoice.taxRate.toStringAsFixed(1)}%)',
+                    _row(
+                        'Tax (${invoice.taxRate.toStringAsFixed(1)}%)',
                         '+₹${invoice.taxAmount.toStringAsFixed(2)}'),
                   ],
                   _divider(),
@@ -155,28 +132,31 @@ class TransactionDetailPage extends StatelessWidget {
   Widget _row(String label, String value,
       {bool bold = false, Color? valueColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
               style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey[600],
+                  color: bold
+                      ? AppTheme.textPrimary
+                      : AppTheme.textSecondary,
                   fontWeight:
-                      bold ? FontWeight.bold : FontWeight.normal)),
+                      bold ? FontWeight.w700 : FontWeight.normal)),
           Text(value,
               style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-                  color: valueColor ?? Colors.black87)),
+                  fontSize: bold ? 16 : 13,
+                  fontWeight:
+                      bold ? FontWeight.w800 : FontWeight.w500,
+                  color: valueColor ?? AppTheme.textPrimary)),
         ],
       ),
     );
   }
 
-  Widget _divider() =>
-      Divider(height: 1, thickness: 1, color: Colors.grey[100]);
+  Widget _divider() => const Divider(
+      height: 1, thickness: 1, color: AppTheme.dividerColor);
 
   Widget _headerCell(String text, {TextAlign align = TextAlign.left}) {
     return Padding(
@@ -185,22 +165,22 @@ class TransactionDetailPage extends StatelessWidget {
           textAlign: align,
           style: const TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 0.5)),
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textSecondary,
+              letterSpacing: 0.3)),
     );
   }
 
   Widget _dataCell(String text,
       {TextAlign align = TextAlign.left, bool bold = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
       child: Text(text,
           textAlign: align,
           style: TextStyle(
               fontSize: 13,
-              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-              color: Colors.black87)),
+              fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+              color: AppTheme.textPrimary)),
     );
   }
 }

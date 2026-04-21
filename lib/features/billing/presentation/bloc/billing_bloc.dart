@@ -41,12 +41,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       ScanBarcodeEvent event, Emitter<BillingState> emit) async {
     final result = await getProductByBarcodeUseCase(event.barcode);
     result.fold(
-      (failure) =>
-          emit(state.copyWith(error: 'Product not found: ${event.barcode}')),
+      (failure) {
+        emit(state.copyWith(error: 'Product not found: ${event.barcode}'));
+        emit(state.copyWith(clearError: true));
+      },
       (product) {
         if (product.stock <= 0) {
           emit(state.copyWith(
-              error: '${product.name} is out of stock!', clearError: false));
+              error: '${product.name} is out of stock!'));
           emit(state.copyWith(clearError: true));
           return;
         }

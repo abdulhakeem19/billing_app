@@ -31,22 +31,34 @@ class LoyaltyBloc extends Bloc<LoyaltyEvent, LoyaltyState> {
 
   Future<void> _onLookupCustomer(
       LookupCustomerEvent event, Emitter<LoyaltyState> emit) async {
-    emit(state.copyWith(isLoading: true, error: null));
+    emit(state.copyWith(isLoading: true, clearError: true));
     final result = await getCustomerByPhoneUseCase(event.phone);
     result.fold(
-      (failure) =>
-          emit(state.copyWith(isLoading: false, error: failure.message)),
-      (customer) => emit(state.copyWith(
-        isLoading: false,
-        selectedCustomer: customer,
-        lookupDone: true,
-      )),
+      (failure) => emit(state.copyWith(
+          isLoading: false, error: failure.message, lookupDone: true)),
+      (customer) {
+        if (customer == null) {
+          // Not found – show "Register" prompt
+          emit(state.copyWith(
+              isLoading: false,
+              clearSelectedCustomer: true,
+              lookupDone: true,
+              clearError: true));
+        } else {
+          emit(state.copyWith(
+            isLoading: false,
+            selectedCustomer: customer,
+            lookupDone: true,
+            clearError: true,
+          ));
+        }
+      },
     );
   }
 
   Future<void> _onCreateCustomer(
       CreateCustomerEvent event, Emitter<LoyaltyState> emit) async {
-    emit(state.copyWith(isLoading: true, error: null));
+    emit(state.copyWith(isLoading: true, clearError: true));
     final newCustomer = Customer(
       id: const Uuid().v4(),
       name: event.name,
@@ -60,6 +72,7 @@ class LoyaltyBloc extends Bloc<LoyaltyEvent, LoyaltyState> {
         isLoading: false,
         selectedCustomer: customer,
         lookupDone: true,
+        clearError: true,
       )),
     );
   }

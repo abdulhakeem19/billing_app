@@ -83,5 +83,6 @@ class BillingState extends Equatable {
         paymentMode,
         isCheckingOut,
         checkoutSuccess,
+        completedInvoice,
       ];
 }

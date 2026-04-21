@@ -29,6 +29,7 @@ class LoyaltyState extends Equatable {
     bool? lookupDone,
     bool? isLoading,
     String? error,
+    bool clearError = false,
     int? pointsToRedeem,
     List<Customer>? allCustomers,
   }) {
@@ -38,7 +39,7 @@ class LoyaltyState extends Equatable {
           : (selectedCustomer ?? this.selectedCustomer),
       lookupDone: lookupDone ?? this.lookupDone,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
       pointsToRedeem: pointsToRedeem ?? this.pointsToRedeem,
       allCustomers: allCustomers ?? this.allCustomers,
     );

@@ -22,7 +22,6 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    // Re-initialize printer state whenever settings page opens
     context.read<PrinterBloc>().add(InitPrinterEvent());
   }
 
@@ -30,215 +29,154 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.chevron_left,
-              size: 28, color: Theme.of(context).primaryColor),
+          icon: const Icon(Icons.chevron_left, size: 28),
           onPressed: () => context.pop(),
         ),
+        title: const Text('Settings'),
       ),
       body: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Section
-            Container(
-              width: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-              child: BlocBuilder<ShopBloc, ShopState>(
-                builder: (context, state) {
-                  String shopName = 'Elite Groceries';
-                  String initials = 'EG';
-                  if (state is ShopLoaded && state.shop.name.isNotEmpty) {
-                    shopName = state.shop.name;
-                    final parts = shopName.split(' ');
-                    initials = parts
-                        .take(2)
-                        .map((p) => p.isNotEmpty ? p[0].toUpperCase() : '')
-                        .join('');
-                    if (initials.isEmpty) initials = 'S';
-                  }
+            // Profile card
+            _buildProfileSection(),
+            const SizedBox(height: 24),
 
-                  return Column(
-                    children: [
-                      Container(
-                        width: 96,
-                        height: 96,
-                        decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor
-                                    .withValues(alpha: 0.2),
-                                blurRadius: 15,
-                                spreadRadius: 5,
-                              )
-                            ]),
-                        alignment: Alignment.center,
-                        child: Text(initials,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -1)),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(shopName.toUpperCase(),
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold)),
-                    ],
-                  );
-                },
+            // Management
+            _sectionHeader('Management'),
+            _buildGroup(children: [
+              _item(
+                icon: Icons.inventory_2_outlined,
+                title: 'Products',
+                subtitle: 'Manage stock and barcodes',
+                onTap: () => context.push('/products'),
               ),
-            ),
-
+              _divider(),
+              _item(
+                icon: Icons.storefront_outlined,
+                title: 'Shop Details',
+                subtitle: 'Edit business info & address',
+                onTap: () => context.push('/shop'),
+              ),
+              _divider(),
+              _item(
+                icon: Icons.bar_chart_rounded,
+                title: 'Reports & Analytics',
+                subtitle: 'Sales history and trends',
+                onTap: () => context.push('/reports'),
+              ),
+              _divider(),
+              _item(
+                icon: Icons.qr_code_2_rounded,
+                title: 'Digital QR Menu',
+                subtitle: 'Generate QR codes for your menu',
+                onTap: () => context.push('/qr-menu'),
+              ),
+            ]),
             const SizedBox(height: 24),
 
-            // Management Section
-            _buildSectionHeader('Management'),
-            _buildListGroup(
-              children: [
-                _buildListItem(
-                  icon: Icons.qr_code_scanner,
-                  title: 'Products',
-                  subtitle: 'Manage stock and barcodes',
-                  onTap: () => context.push('/products'),
-                ),
-                _buildDivider(),
-                _buildListItem(
-                  icon: Icons.storefront,
-                  title: 'Shop Details',
-                  subtitle: 'Edit business info & address',
-                  onTap: () => context.push('/shop'),
-                ),
-                _buildDivider(),
-                _buildListItem(
-                  icon: Icons.bar_chart_rounded,
-                  title: 'Reports & Analytics',
-                  subtitle: 'Sales history and trends',
-                  onTap: () => context.push('/reports'),
-                ),
-                _buildDivider(),
-                _buildListItem(
-                  icon: Icons.qr_code_2_rounded,
-                  title: 'Digital QR Menu',
-                  subtitle: 'Generate QR codes for your menu',
-                  onTap: () => context.push('/qr-menu'),
-                ),
-              ],
-            ),
-
+            // Billing
+            _sectionHeader('Billing'),
+            _buildGroup(children: [_buildTaxItem()]),
             const SizedBox(height: 24),
 
-            // Tax Settings Section
-            _buildSectionHeader('Billing'),
-            _buildListGroup(
-              children: [
-                _buildTaxSettingItem(context),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Hardware Section
-            _buildSectionHeader('Hardware'),
+            // Hardware
+            _sectionHeader('Hardware'),
             BlocConsumer<PrinterBloc, PrinterState>(
               listener: (context, state) {
                 if (state.errorMessage != null) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(state.errorMessage!),
-                      backgroundColor: Colors.red));
+                    content: Text(state.errorMessage!),
+                    backgroundColor: AppTheme.errorColor,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    margin: const EdgeInsets.all(12),
+                  ));
                 } else if (state.status == PrinterStatus.connected) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Connected to printer'),
-                      backgroundColor: Colors.green));
+                    content: Text('Printer connected'),
+                    backgroundColor: AppTheme.successColor,
+                    behavior: SnackBarBehavior.floating,
+                  ));
                 }
               },
-              builder: (context, state) {
-                return _buildListGroup(
-                  children: [
-                    _buildListItem(
-                      icon: Icons.print,
-                      title: 'Print Device',
-                      subtitleWidget: Row(
-                        children: [
-                          Text(
-                            state.connectedMac != null
-                                ? (state.connectedName ?? 'Printer connected')
-                                : 'No printer connected',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[500]),
-                          ),
-                          if (state.connectedMac != null) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                  color: Colors.teal[100],
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.teal[200]!)),
-                              child: Text(
-                                'CONNECTED',
-                                style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal[700]),
-                              ),
-                            ),
-                          ]
-                        ],
+              builder: (context, state) => _buildGroup(children: [
+                _item(
+                  icon: Icons.print_outlined,
+                  title: 'Print Device',
+                  subtitleWidget: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          state.connectedMac != null
+                              ? (state.connectedName ?? 'Printer connected')
+                              : 'No printer connected',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppTheme.textSecondary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      trailingWidget: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (state.status == PrinterStatus.scanning ||
-                              state.status == PrinterStatus.connecting)
-                            const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2))
-                          else
-                            IconButton(
-                              icon: const Icon(Icons.refresh),
-                              onPressed: () => context
-                                  .read<PrinterBloc>()
-                                  .add(RefreshPrinterEvent()),
-                              color: AppTheme.primaryColor,
-                            ),
-                          IconButton(
-                            icon: const Icon(Icons.settings),
-                            onPressed: () {
-                              AppSettings.openAppSettings(
-                                  type: AppSettingsType.bluetooth);
-                            },
-                            color: Colors.grey,
+                      if (state.connectedMac != null) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.teal.shade200),
                           ),
-                        ],
+                          child: Text('CONNECTED',
+                              style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.teal.shade700)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  trailingWidget: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (state.status == PrinterStatus.scanning ||
+                          state.status == PrinterStatus.connecting)
+                        const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.primaryColor))
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.refresh_rounded,
+                              color: AppTheme.primaryColor, size: 20),
+                          onPressed: () => context
+                              .read<PrinterBloc>()
+                              .add(RefreshPrinterEvent()),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.settings_outlined,
+                            color: AppTheme.textSecondary, size: 20),
+                        onPressed: () => AppSettings.openAppSettings(
+                            type: AppSettingsType.bluetooth),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  ),
+                ),
+              ]),
             ),
-
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Text(
-                "To connect a new device, tap on the Settings gear to pair in phone's Bluetooth settings, then return and hit Refresh.",
-                style: TextStyle(
+                'To connect a new device, tap ⚙ to pair via Bluetooth settings, then return and tap ↺ to refresh.',
+                style: const TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
-                    color: Colors.grey[500]),
+                    color: AppTheme.textSecondary),
               ),
             ),
-
             const SizedBox(height: 48),
           ],
         ),
@@ -246,43 +184,117 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildProfileSection() {
+    return Container(
+      color: AppTheme.surfaceColor,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      child: BlocBuilder<ShopBloc, ShopState>(builder: (context, state) {
+        String shopName = 'My Shop';
+        String initials = 'MS';
+        if (state is ShopLoaded && state.shop.name.isNotEmpty) {
+          shopName = state.shop.name;
+          final parts = shopName.trim().split(' ');
+          initials = parts
+              .take(2)
+              .map((p) => p.isNotEmpty ? p[0].toUpperCase() : '')
+              .join('');
+          if (initials.isEmpty) initials = 'S';
+        }
+
+        return Row(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text(initials,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(shopName,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  GestureDetector(
+                    onTap: () => context.push('/shop'),
+                    child: const Text('Edit shop details →',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title.toUpperCase(),
-          style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 1.2),
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textSecondary,
+            letterSpacing: 1.2),
       ),
     );
   }
 
-  Widget _buildListGroup({required List<Widget> children}) {
+  Widget _buildGroup({required List<Widget> children}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[100]!),
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
   }
 
-  Widget _buildDivider() {
-    return Divider(height: 1, thickness: 1, color: Colors.grey[50], indent: 64);
+  Widget _divider() {
+    return const Divider(
+        height: 1, thickness: 1, color: AppTheme.dividerColor, indent: 60);
   }
 
-  Widget _buildTaxSettingItem(BuildContext context) {
+  Widget _buildTaxItem() {
     final taxRate = _getTaxRate();
-    return _buildListItem(
-      icon: Icons.percent,
+    return _item(
+      icon: Icons.percent_rounded,
       title: 'Tax Rate',
       subtitle: taxRate > 0
           ? '${taxRate.toStringAsFixed(1)}% applied on orders'
@@ -293,8 +305,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   double _getTaxRate() {
     try {
-      return (HiveDatabase.settingsBox.get('tax_rate', defaultValue: 0.0)
-          as double);
+      return HiveDatabase.settingsBox.get('tax_rate', defaultValue: 0.0)
+          as double;
     } catch (_) {
       return 0.0;
     }
@@ -307,12 +319,16 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Configure Tax Rate'),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Tax Rate',
+            style: TextStyle(fontWeight: FontWeight.w700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Enter tax percentage (e.g. 5 for 5%)',
-                style: TextStyle(fontSize: 13, color: Colors.grey)),
+                style: TextStyle(
+                    fontSize: 13, color: AppTheme.textSecondary)),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -322,6 +338,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 hintText: '0.0',
                 suffixText: '%',
               ),
+              autofocus: true,
             ),
           ],
         ),
@@ -333,15 +350,17 @@ class _SettingsPageState extends State<SettingsPage> {
             onPressed: () {
               final val = double.tryParse(controller.text) ?? 0;
               HiveDatabase.settingsBox.put('tax_rate', val);
-              context
-                  .read<BillingBloc>()
-                  .add(SetTaxRateEvent(val));
+              context.read<BillingBloc>().add(SetTaxRateEvent(val));
               Navigator.pop(ctx);
               setState(() {});
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(
-                      'Tax rate set to ${val.toStringAsFixed(1)}%'),
-                  backgroundColor: Colors.green));
+                content: Text('Tax rate set to ${val.toStringAsFixed(1)}%'),
+                backgroundColor: AppTheme.successColor,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.all(12),
+              ));
             },
             child: const Text('Save'),
           ),
@@ -350,7 +369,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildListItem({
+  Widget _item({
     required IconData icon,
     required String title,
     String? subtitle,
@@ -361,21 +380,22 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(9),
               ),
-              child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+              child:
+                  Icon(icon, color: AppTheme.primaryColor, size: 18),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,20 +406,22 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(subtitle,
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[500])),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary)),
                   ],
                   if (subtitleWidget != null) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     subtitleWidget,
-                  ]
+                  ],
                 ],
               ),
             ),
             if (trailingWidget != null)
               trailingWidget
             else if (trailingIcon != null)
-              Icon(trailingIcon, color: Colors.grey[300]),
+              Icon(trailingIcon,
+                  color: AppTheme.dividerColor, size: 18),
           ],
         ),
       ),
