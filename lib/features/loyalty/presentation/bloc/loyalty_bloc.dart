@@ -96,8 +96,11 @@ class LoyaltyBloc extends Bloc<LoyaltyEvent, LoyaltyState> {
     if (customer == null) return;
     final newPoints = (customer.points + event.points).clamp(0, kMaxLoyaltyPoints);
     final updated = customer.copyWith(points: newPoints);
-    await updateCustomerUseCase(updated);
-    emit(state.copyWith(selectedCustomer: updated));
+    final result = await updateCustomerUseCase(updated);
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (_) => emit(state.copyWith(selectedCustomer: updated, clearError: true)),
+    );
   }
 
   void _onRedeemPoints(

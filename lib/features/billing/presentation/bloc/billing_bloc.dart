@@ -66,7 +66,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       return;
     }
 
-    final cleanState = state.copyWith(error: null);
+    final cleanState = state.copyWith(clearError: true);
     final existingIndex = cleanState.cartItems
         .indexWhere((item) => item.product.id == event.product.id);
 
@@ -82,14 +82,13 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       }
       final backendItems = List<CartItem>.from(cleanState.cartItems);
       backendItems[existingIndex] = existing.copyWith(quantity: newQty);
-      emit(cleanState.copyWith(cartItems: backendItems, error: null));
+      emit(cleanState.copyWith(cartItems: backendItems));
     } else {
       emit(cleanState.copyWith(
           cartItems: [
             ...cleanState.cartItems,
             CartItem(product: event.product)
-          ],
-          error: null));
+          ]));
     }
   }
 

@@ -84,12 +84,13 @@ class ReportsState extends Equatable {
     String? filter,
     bool? isLoading,
     String? error,
+    bool clearError = false,
   }) {
     return ReportsState(
       allInvoices: allInvoices ?? this.allInvoices,
       filter: filter ?? this.filter,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 

@@ -22,7 +22,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
 
   Future<void> _onLoadReports(
       LoadReportsEvent event, Emitter<ReportsState> emit) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, clearError: true));
     final result = await getInvoicesUseCase(NoParams());
     result.fold(
       (failure) =>
@@ -30,6 +30,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       (invoices) => emit(state.copyWith(
         isLoading: false,
         allInvoices: invoices,
+        clearError: true,
       )),
     );
   }
@@ -40,7 +41,10 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
 
   Future<void> _onDeleteInvoice(
       DeleteInvoiceFromReportsEvent event, Emitter<ReportsState> emit) async {
-    await deleteInvoiceUseCase(event.invoiceId);
-    add(LoadReportsEvent());
+    final result = await deleteInvoiceUseCase(event.invoiceId);
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (_) => add(LoadReportsEvent()),
+    );
   }
 }
