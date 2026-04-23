@@ -6,8 +6,8 @@ import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
 import 'package:billing_app/features/invoice/domain/entities/invoice.dart';
 import 'package:billing_app/features/invoice/domain/usecases/invoice_usecases.dart';
-import '../../../../core/utils/printer_helper.dart';
-import '../../../../core/data/hive_database.dart';
+import 'package:billing_app/core/data/settings_repository.dart';
+import 'package:billing_app/features/settings/domain/repositories/printer_repository.dart';
 
 part 'billing_event.dart';
 part 'billing_state.dart';
@@ -16,14 +16,17 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final GetProductByBarcodeUseCase getProductByBarcodeUseCase;
   final UpdateProductUseCase updateProductUseCase;
   final SaveInvoiceUseCase saveInvoiceUseCase;
+  final SettingsRepository settingsRepository;
+  final PrinterRepository printerRepository;
 
   BillingBloc({
     required this.getProductByBarcodeUseCase,
     required this.updateProductUseCase,
     required this.saveInvoiceUseCase,
+    required this.settingsRepository,
+    required this.printerRepository,
   }) : super(BillingState(
-          taxRate: HiveDatabase.settingsBox.get('tax_rate', defaultValue: 0.0)
-              as double,
+          taxRate: settingsRepository.getTaxRate(),
         )) {
     on<ScanBarcodeEvent>(_onScanBarcode);
     on<AddProductToCartEvent>(_onAddProductToCart);
@@ -126,8 +129,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     emit(BillingState(taxRate: state.taxRate));
   }
 
-  void _onSetTaxRate(SetTaxRateEvent event, Emitter<BillingState> emit) {
-    HiveDatabase.settingsBox.put('tax_rate', event.taxRate);
+  Future<void> _onSetTaxRate(
+      SetTaxRateEvent event, Emitter<BillingState> emit) async {
+    await settingsRepository.saveTaxRate(event.taxRate);
     emit(state.copyWith(taxRate: event.taxRate));
   }
 
@@ -160,15 +164,12 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       await updateProductUseCase(updated);
     }
 
-    // Build and save invoice
-    final nextNumber =
-        HiveDatabase.settingsBox.get('next_invoice_number', defaultValue: 1)
-            as int;
-    await HiveDatabase.settingsBox.put('next_invoice_number', nextNumber + 1);
+    // Atomically obtain the next invoice number
+    final invoiceNumber = await settingsRepository.allocateInvoiceNumber();
 
     final invoice = Invoice(
       id: const Uuid().v4(),
-      invoiceNumber: nextNumber,
+      invoiceNumber: invoiceNumber,
       timestamp: DateTime.now(),
       items: state.cartItems
           .map((i) => InvoiceItem(
@@ -202,12 +203,10 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onPrintReceipt(
       PrintReceiptEvent event, Emitter<BillingState> emit) async {
-    final printerHelper = PrinterHelper();
-
-    if (!printerHelper.isConnected) {
-      final savedMac = HiveDatabase.settingsBox.get('printer_mac');
+    if (!printerRepository.isConnected) {
+      final savedMac = printerRepository.getSavedPrinterMac();
       if (savedMac != null) {
-        final connected = await printerHelper.connect(savedMac);
+        final connected = await printerRepository.connect(savedMac);
         if (!connected) {
           emit(state.copyWith(
               error: 'Failed to auto-connect to printer!', clearError: false));
@@ -236,7 +235,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
               })
           .toList();
 
-      await printerHelper.printReceipt(
+      await printerRepository.printReceipt(
           shopName: event.shopName,
           address1: event.address1,
           address2: event.address2,

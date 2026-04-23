@@ -156,9 +156,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 // Shop name
                 BlocBuilder<ShopBloc, ShopState>(builder: (context, shopState) {
-                  final shopName = shopState is ShopLoaded
-                      ? shopState.shop.name
-                      : 'Smart POS';
+                  final shopName = shopState.shop?.name ?? 'Smart POS';
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

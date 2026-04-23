@@ -7,6 +7,9 @@ class PrinterRepositoryImpl implements PrinterRepository {
   final PrinterHelper _printerHelper = PrinterHelper();
 
   @override
+  bool get isConnected => _printerHelper.isConnected;
+
+  @override
   Future<List<BluetoothInfo>> scanDevices() async {
     if (await _printerHelper.checkPermission()) {
       return await _printerHelper.getBondedDevices();
@@ -50,5 +53,26 @@ class PrinterRepositoryImpl implements PrinterRepository {
   Future<void> testPrint(String shopName) async {
     await _printerHelper
         .printText("Test Print\n\n$shopName\n\n----------------\n\n");
+  }
+
+  @override
+  Future<void> printReceipt({
+    required String shopName,
+    required String address1,
+    required String address2,
+    required String phone,
+    required List<Map<String, dynamic>> items,
+    required double total,
+    required String footer,
+  }) {
+    return _printerHelper.printReceipt(
+      shopName: shopName,
+      address1: address1,
+      address2: address2,
+      phone: phone,
+      items: items,
+      total: total,
+      footer: footer,
+    );
   }
 }

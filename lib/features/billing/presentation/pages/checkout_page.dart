@@ -40,7 +40,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _shareWhatsApp(
       BillingState billing, ShopState shopState) async {
     final shopName =
-        shopState is ShopLoaded ? shopState.shop.name : 'Shop';
+        shopState.shop?.name ?? 'Shop';
     final sb = StringBuffer();
     sb.writeln('*$shopName — Receipt*');
     sb.writeln('');
@@ -126,9 +126,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 String upiId = '';
                 String shopName = 'Shop';
 
-                if (shopState is ShopLoaded) {
-                  upiId = shopState.shop.upiId;
-                  shopName = shopState.shop.name;
+                if (shopState.shop != null) {
+                  upiId = shopState.shop!.upiId;
+                  shopName = shopState.shop!.name;
                 }
 
                 return Column(
@@ -682,13 +682,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
               onPressed: billingState.isPrinting
                   ? null
                   : () {
-                      if (shopState is ShopLoaded) {
+                      if (shopState.shop != null) {
                         context.read<BillingBloc>().add(PrintReceiptEvent(
-                            shopName: shopState.shop.name,
-                            address1: shopState.shop.addressLine1,
-                            address2: shopState.shop.addressLine2,
-                            phone: shopState.shop.phoneNumber,
-                            footer: shopState.shop.footerText));
+                            shopName: shopState.shop!.name,
+                            address1: shopState.shop!.addressLine1,
+                            address2: shopState.shop!.addressLine2,
+                            phone: shopState.shop!.phoneNumber,
+                            footer: shopState.shop!.footerText));
                       }
                     },
               tooltip: 'Print Receipt',

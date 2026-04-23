@@ -90,7 +90,7 @@ class _AddProductPageState extends State<AddProductPage> {
                         decoration: const InputDecoration(
                             hintText: 'Enter or scan barcode'),
                         validator:
-                            AppValidators.required('Please enter a barcode'),
+                            AppValidators.barcode,
                         onSaved: (v) => _barcode = v!.trim(),
                       ),
                     ),
@@ -104,7 +104,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 TextFormField(
                   decoration: const InputDecoration(hintText: 'e.g. Basmati Rice'),
                   textCapitalization: TextCapitalization.words,
-                  validator: AppValidators.required('Please enter a name'),
+                  validator: AppValidators.name(),
                   onSaved: (v) => _name = v!.trim(),
                 ),
                 const SizedBox(height: 20),
@@ -137,14 +137,7 @@ class _AddProductPageState extends State<AddProductPage> {
                             initialValue: '0',
                             decoration:
                                 const InputDecoration(suffixText: 'units'),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return 'Required';
-                              }
-                              final n = int.tryParse(v);
-                              if (n == null || n < 0) return 'Invalid';
-                              return null;
-                            },
+                            validator: AppValidators.stock,
                             onSaved: (v) =>
                                 _stock = int.tryParse(v!) ?? 0,
                           ),

@@ -19,11 +19,27 @@ import '../../features/loyalty/domain/usecases/loyalty_usecases.dart';
 import '../../features/loyalty/presentation/bloc/loyalty_bloc.dart';
 import '../../features/reports/presentation/bloc/reports_bloc.dart';
 import '../../features/billing/presentation/bloc/billing_bloc.dart';
+import 'data/settings_repository.dart';
+import 'data/settings_repository_impl.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  // Features - Product
+  _registerProductDependencies();
+  _registerShopDependencies();
+  _registerPrinterDependencies();
+  _registerInvoiceDependencies();
+  _registerLoyaltyDependencies();
+  _registerSettingsDependencies();
+  _registerBillingDependencies();
+  _registerReportsDependencies();
+}
+
+// ---------------------------------------------------------------------------
+// Product
+// ---------------------------------------------------------------------------
+
+void _registerProductDependencies() {
   sl.registerFactory(
     () => ProductBloc(
       getProductsUseCase: sl(),
@@ -33,6 +49,22 @@ Future<void> init() async {
     ),
   );
 
+  sl.registerLazySingleton(() => GetProductsUseCase(sl()));
+  sl.registerLazySingleton(() => AddProductUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateProductUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteProductUseCase(sl()));
+  sl.registerLazySingleton(() => GetProductByBarcodeUseCase(sl()));
+
+  sl.registerLazySingleton<ProductRepository>(
+    () => ProductRepositoryImpl(),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shop
+// ---------------------------------------------------------------------------
+
+void _registerShopDependencies() {
   sl.registerFactory(
     () => ShopBloc(
       getShopUseCase: sl(),
@@ -40,30 +72,47 @@ Future<void> init() async {
     ),
   );
 
+  sl.registerLazySingleton(() => GetShopUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateShopUseCase(sl()));
+
+  sl.registerLazySingleton<ShopRepository>(
+    () => ShopRepositoryImpl(),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Printer / Settings page
+// ---------------------------------------------------------------------------
+
+void _registerPrinterDependencies() {
   sl.registerFactory(
-    () => PrinterBloc(
-      repository: sl(),
-    ),
+    () => PrinterBloc(repository: sl()),
   );
 
-  // BillingBloc now needs updateProductUseCase and saveInvoiceUseCase
-  sl.registerFactory(
-    () => BillingBloc(
-      getProductByBarcodeUseCase: sl(),
-      updateProductUseCase: sl(),
-      saveInvoiceUseCase: sl(),
-    ),
+  sl.registerLazySingleton<PrinterRepository>(
+    () => PrinterRepositoryImpl(),
   );
+}
 
-  // ReportsBloc
-  sl.registerFactory(
-    () => ReportsBloc(
-      getInvoicesUseCase: sl(),
-      deleteInvoiceUseCase: sl(),
-    ),
+// ---------------------------------------------------------------------------
+// Invoice
+// ---------------------------------------------------------------------------
+
+void _registerInvoiceDependencies() {
+  sl.registerLazySingleton(() => SaveInvoiceUseCase(sl()));
+  sl.registerLazySingleton(() => GetInvoicesUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteInvoiceUseCase(sl()));
+
+  sl.registerLazySingleton<InvoiceRepository>(
+    () => InvoiceRepositoryImpl(),
   );
+}
 
-  // LoyaltyBloc
+// ---------------------------------------------------------------------------
+// Loyalty
+// ---------------------------------------------------------------------------
+
+void _registerLoyaltyDependencies() {
   sl.registerFactory(
     () => LoyaltyBloc(
       getCustomerByPhoneUseCase: sl(),
@@ -73,50 +122,51 @@ Future<void> init() async {
     ),
   );
 
-  // Use cases - Product
-  sl.registerLazySingleton(() => GetProductsUseCase(sl()));
-  sl.registerLazySingleton(() => AddProductUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateProductUseCase(sl()));
-  sl.registerLazySingleton(() => DeleteProductUseCase(sl()));
-  sl.registerLazySingleton(() => GetProductByBarcodeUseCase(sl()));
-
-  // Repository - Product
-  sl.registerLazySingleton<ProductRepository>(
-    () => ProductRepositoryImpl(),
-  );
-
-  // Use cases - Shop
-  sl.registerLazySingleton(() => GetShopUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateShopUseCase(sl()));
-
-  // Repository - Shop
-  sl.registerLazySingleton<ShopRepository>(
-    () => ShopRepositoryImpl(),
-  );
-
-  // Features - Settings / Printer
-  sl.registerLazySingleton<PrinterRepository>(
-    () => PrinterRepositoryImpl(),
-  );
-
-  // Use cases - Invoice
-  sl.registerLazySingleton(() => SaveInvoiceUseCase(sl()));
-  sl.registerLazySingleton(() => GetInvoicesUseCase(sl()));
-  sl.registerLazySingleton(() => DeleteInvoiceUseCase(sl()));
-
-  // Repository - Invoice
-  sl.registerLazySingleton<InvoiceRepository>(
-    () => InvoiceRepositoryImpl(),
-  );
-
-  // Use cases - Loyalty
   sl.registerLazySingleton(() => GetCustomerByPhoneUseCase(sl()));
   sl.registerLazySingleton(() => CreateCustomerUseCase(sl()));
   sl.registerLazySingleton(() => UpdateCustomerUseCase(sl()));
   sl.registerLazySingleton(() => GetAllCustomersUseCase(sl()));
 
-  // Repository - Loyalty
   sl.registerLazySingleton<LoyaltyRepository>(
     () => LoyaltyRepositoryImpl(),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Settings (cross-cutting: tax rate, invoice counter)
+// ---------------------------------------------------------------------------
+
+void _registerSettingsDependencies() {
+  sl.registerLazySingleton<SettingsRepository>(
+    () => SettingsRepositoryImpl(),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+void _registerBillingDependencies() {
+  sl.registerFactory(
+    () => BillingBloc(
+      getProductByBarcodeUseCase: sl(),
+      updateProductUseCase: sl(),
+      saveInvoiceUseCase: sl(),
+      settingsRepository: sl(),
+      printerRepository: sl(),
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+void _registerReportsDependencies() {
+  sl.registerFactory(
+    () => ReportsBloc(
+      getInvoicesUseCase: sl(),
+      deleteInvoiceUseCase: sl(),
+    ),
   );
 }

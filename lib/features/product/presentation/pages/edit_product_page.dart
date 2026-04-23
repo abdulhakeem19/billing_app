@@ -102,7 +102,7 @@ class _EditProductPageState extends State<EditProductPage> {
                 TextFormField(
                   initialValue: _name,
                   textCapitalization: TextCapitalization.words,
-                  validator: AppValidators.required('Please enter a name'),
+                  validator: AppValidators.name(),
                   onSaved: (v) => _name = v!.trim(),
                 ),
                 const SizedBox(height: 20),
@@ -138,12 +138,7 @@ class _EditProductPageState extends State<EditProductPage> {
                             keyboardType: TextInputType.number,
                             decoration:
                                 const InputDecoration(suffixText: 'units'),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'Required';
-                              final n = int.tryParse(v);
-                              if (n == null || n < 0) return 'Invalid';
-                              return null;
-                            },
+                            validator: AppValidators.stock,
                             onSaved: (v) => _stock = int.tryParse(v!) ?? 0,
                           ),
                         ],
