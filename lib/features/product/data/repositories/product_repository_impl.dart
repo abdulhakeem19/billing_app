@@ -6,11 +6,26 @@ import '../../domain/repositories/product_repository.dart';
 import '../models/product_model.dart';
 
 class ProductRepositoryImpl implements ProductRepository {
+  /// In-memory barcode→product index for O(1) lookups.
+  /// Populated lazily on first use and kept in sync on every write.
+  Map<String, ProductModel>? _barcodeIndex;
+
+  Map<String, ProductModel> _getOrBuildIndex() {
+    if (_barcodeIndex == null) {
+      _barcodeIndex = {};
+      for (final model in HiveDatabase.productBox.values) {
+        _barcodeIndex![model.barcode] = model;
+      }
+    }
+    return _barcodeIndex!;
+  }
+
+  void _invalidateIndex() => _barcodeIndex = null;
+
   @override
   Future<Either<Failure, List<Product>>> getProducts() async {
     try {
-      final box = HiveDatabase.productBox;
-      final products = box.values.toList();
+      final products = HiveDatabase.productBox.values.toList();
       return Right(products);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -20,12 +35,12 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
     try {
-      final box = HiveDatabase.productBox;
-      final product = box.values.firstWhere(
-        (element) => element.barcode == barcode,
-        orElse: () => throw Exception('Product not found'),
-      );
-      return Right(product);
+      final index = _getOrBuildIndex();
+      final model = index[barcode];
+      if (model == null) {
+        return const Left(NotFoundFailure('Product not found'));
+      }
+      return Right(model);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }
@@ -34,10 +49,9 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> addProduct(Product product) async {
     try {
-      final box = HiveDatabase.productBox;
-      // You can use add() or put()
       final model = ProductModel.fromEntity(product);
-      await box.put(model.id, model); // Using ID as key
+      await HiveDatabase.productBox.put(model.id, model);
+      _invalidateIndex();
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -47,9 +61,9 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> updateProduct(Product product) async {
     try {
-      final box = HiveDatabase.productBox;
       final model = ProductModel.fromEntity(product);
-      await box.put(model.id, model);
+      await HiveDatabase.productBox.put(model.id, model);
+      _invalidateIndex();
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -59,8 +73,8 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> deleteProduct(String id) async {
     try {
-      final box = HiveDatabase.productBox;
-      await box.delete(id);
+      await HiveDatabase.productBox.delete(id);
+      _invalidateIndex();
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

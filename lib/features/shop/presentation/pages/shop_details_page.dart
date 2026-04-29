@@ -82,27 +82,28 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
       ),
       body: BlocConsumer<ShopBloc, ShopState>(
         listener: (context, state) {
-          if (state is ShopLoaded) {
-            _updateControllers(state.shop);
-          } else if (state is ShopOperationSuccess) {
+          if (state.status == ShopStatus.loaded) {
+            _updateControllers(state.shop!);
+          } else if (state.status == ShopStatus.success) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Shop details saved!'),
               backgroundColor: AppTheme.successColor,
               behavior: SnackBarBehavior.floating,
             ));
             context.pop();
-          } else if (state is ShopError) {
+          } else if (state.status == ShopStatus.error) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.message),
+              content: Text(state.message ?? 'An error occurred'),
               backgroundColor: AppTheme.errorColor,
               behavior: SnackBarBehavior.floating,
             ));
           }
         },
         buildWhen: (prev, curr) =>
-            curr is ShopLoading || curr is ShopLoaded,
+            curr.status == ShopStatus.loading ||
+            curr.status == ShopStatus.loaded,
         builder: (context, state) {
-          if (state is ShopLoading) {
+          if (state.status == ShopStatus.loading) {
             return const Center(child: CircularProgressIndicator());
           }
           return SingleChildScrollView(
@@ -133,14 +134,15 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                   _field(_phoneController,
                       hint: '+91 9876543210',
                       keyboardType: TextInputType.phone,
-                      validator: AppValidators.required('Required')),
+                      validator: AppValidators.phone),
                   const SizedBox(height: 24),
                   _sectionHeader('Payment', 'UPI QR code for checkout'),
                   const SizedBox(height: 16),
                   _label('UPI ID'),
                   _field(_upiController,
                       hint: 'yourname@bank',
-                      textCapitalization: TextCapitalization.none),
+                      textCapitalization: TextCapitalization.none,
+                      validator: AppValidators.upiId),
                   const SizedBox(height: 24),
                   _sectionHeader('Receipt', 'Customize receipt footer'),
                   const SizedBox(height: 16),

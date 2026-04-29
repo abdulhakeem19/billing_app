@@ -71,9 +71,7 @@ class _QrMenuPageState extends State<QrMenuPage>
       builder: (context, productState) {
         return BlocBuilder<ShopBloc, ShopState>(
           builder: (context, shopState) {
-            final shopName = shopState is ShopLoaded
-                ? shopState.shop.name
-                : 'Shop Menu';
+            final shopName = shopState.shop?.name ?? 'Shop Menu';
             final products = productState.products;
 
             final menuData = jsonEncode({
